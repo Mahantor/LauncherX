@@ -180,19 +180,16 @@ namespace LauncherXWinUI
             if (MainWindow == null)
                 return;
 
-            // Ensure the window is visible (it may have been hidden to the tray).
-            MainWindow.Show();
-            MainWindow.Activate();
-
-            // Bring the underlying HWND to the foreground. WinUI's Activate() alone is not
-            // reliable when the window was hidden, so we additionally use SetForegroundWindow.
+            // WinUI 3's Window has no Show()/Hide() methods, so the underlying HWND is driven
+            // directly with ShowWindow. First make the hidden window visible again, then
+            // restore it (if minimised) and bring it to the foreground.
             try
             {
                 IntPtr hwnd = WinRT.Interop.WindowNative.GetWindowHandle(MainWindow);
                 if (hwnd != IntPtr.Zero)
                 {
-                    // Restore if minimised, then bring to front.
-                    ShowWindow(hwnd, SW_RESTORE);
+                    ShowWindow(hwnd, SW_SHOW);       // un-hide from the tray
+                    ShowWindow(hwnd, SW_RESTORE);    // restore if minimised
                     SetForegroundWindow(hwnd);
                 }
             }
@@ -200,9 +197,20 @@ namespace LauncherXWinUI
             {
                 // Bringing to foreground is best-effort; never let it crash activation.
             }
+
+            // Activate() on top to make sure focus/input go to the WinUI window.
+            try
+            {
+                MainWindow.Activate();
+            }
+            catch
+            {
+                // Best-effort.
+            }
         }
 
-        // Win32 helpers used to reliably bring the window to the foreground.
+        // Win32 helpers used to reliably show/restore/bring-to-front the window.
+        private const int SW_SHOW = 5;
         private const int SW_RESTORE = 9;
 
         [DllImport("user32.dll")]
