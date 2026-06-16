@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
@@ -936,7 +937,27 @@ namespace LauncherXWinUI
         // For fullscreen mode - Close button hides LauncherX to the System Tray instead of exiting
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
-            this.Hide();
+            HideToTray();
+        }
+
+        // WinUI 3's Window has no Hide()/Show() methods (unlike WPF/WinForms), so we drive the
+        // underlying HWND directly with ShowWindow. Used to hide the window to the tray.
+        private const int SW_HIDE = 0;
+
+        [DllImport("user32.dll")]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        /// <summary>
+        /// Hides the MainWindow to the System Tray (window becomes invisible but the process,
+        /// the tray icon and the global hotkey keep running).
+        /// </summary>
+        private void HideToTray()
+        {
+            IntPtr hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            if (hwnd != IntPtr.Zero)
+            {
+                ShowWindow(hwnd, SW_HIDE);
+            }
         }
 
         // When window resized
@@ -1062,7 +1083,7 @@ namespace LauncherXWinUI
 
             // Cancel the close and hide the window to the tray instead.
             args.Handled = true;
-            this.Hide();
+            HideToTray();
         }
     }
 }
