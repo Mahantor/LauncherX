@@ -933,10 +933,10 @@ namespace LauncherXWinUI
             LoadingDialog.Visibility = Visibility.Collapsed;
         }
 
-        // For fullscreen mode - Exit LauncherX
+        // For fullscreen mode - Close button hides LauncherX to the System Tray instead of exiting
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
-            this.Close();
+            this.Hide();
         }
 
         // When window resized
@@ -1045,11 +1045,24 @@ namespace LauncherXWinUI
             }
         }
 
-        // The last event handler - save items when the window is closed
+        // The last event handler - when the user closes the window, hide LauncherX to the
+        // System Tray instead of terminating the process. The process keeps running (so the
+        // Tray Icon and the global activation hotkey stay alive) until the user chooses
+        // "Quit LauncherX" from the tray's context menu, which sets App.IsExiting = true.
         private void WindowEx_Closed(object sender, WindowEventArgs args)
         {
-            multiFileSystemWatcher.Dispose();
             UserSettingsClass.SaveLauncherXItems(ItemsGridView.Items);
+
+            if (App.IsExiting)
+            {
+                // Real exit (Tray -> Quit LauncherX): clean up and allow the window to close.
+                multiFileSystemWatcher.Dispose();
+                return;
+            }
+
+            // Cancel the close and hide the window to the tray instead.
+            args.Handled = true;
+            this.Hide();
         }
     }
 }
