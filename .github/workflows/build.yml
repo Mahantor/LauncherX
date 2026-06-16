@@ -1,0 +1,67 @@
+name: Build LauncherX
+
+# این workflow پروژه‌ی WinUI 3 (LauncherX) را برای هر سه معماری
+# (x86, x64, ARM64) در GitHub Actions بیلد می‌کند و خروجی‌های build را
+# به‌صورت artifact آپلود می‌کند تا بتوانید دانلود کنید.
+#
+# پیش‌نیازها:
+#  - runner از نوع windows-2022 است که حاوی Visual Studio و workloadهای
+#    لازم برای Windows App SDK / WinUI 3 است.
+#  - نسخه‌ی ویندوز runner ویندوزسرور 2022 است (سازگار با ویندوز 11).
+
+on:
+  # با هر push به master/main بیلد گرفته می‌شود
+  push:
+    branches: [ master, main ]
+  # با هر Pull Request به master/main بیلد گرفته می‌شود
+  pull_request:
+    branches: [ master, main ]
+  # امکان اجرای دستی از تب Actions در گیت‌هاب
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build (${{ matrix.platform }})
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false   # اگر یک معماری شکست خورد، بقیه همچنان بیلد شوند
+      matrix:
+        platform: [ x86, x64, ARM64 ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install Windows App SDK workload
+        shell: pwsh
+        run: |
+          # نصب workload مرتبط برای بیلد Windows App SDK / WinUI 3
+          dotnet workload update
+          dotnet workload restore LauncherXWinUI/LauncherXWinUI.csproj --skip-manifest-update
+
+      - name: Restore NuGet packages
+        run: msbuild LauncherX.sln -t:Restore -p:Configuration=Release -p:Platform=${{ matrix.platform }}
+
+      - name: Build solution
+        run: msbuild LauncherX.sln -p:Configuration=Release -p:Platform=${{ matrix.platform }} -p:AppxBundle=Never -v:minimal
+
+      - name: Publish (self-contained, unpackaged)
+        # publish با publish profile مربوط به هر معماری؛ خروجی unpackaged و self-contained است.
+        run: msbuild LauncherXWinUI/LauncherXWinUI.csproj -t:Publish -p:Configuration=Release -p:Platform=${{ matrix.platform }} -p:PublishDir=artifacts/${{ matrix.platform }} -p:SelfContained=true -p:WindowsPackageType=None -v:minimal
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: LauncherX-${{ matrix.platform }}
+          # خروجی publish در این پوشه قرار می‌گیرد
+          path: LauncherXWinUI/artifacts/${{ matrix.platform }}
+          if-no-files-found: warn
+          retention-days: 30
