@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -48,11 +48,11 @@ namespace LauncherXWinUI
 
             if (keyInstance.IsCurrent)
             {
-                // An existing running instance of LauncherX does not exist, continue the activation
-                keyInstance.Activated += (object sender, AppActivationArguments args) =>
-                {
-                    ExtendedActivationKind kind = args.Kind;
-                };
+                // This is the main (and only) instance. The AppInstance.Activated event is
+                // subscribed to inside App.OnLaunched (as MainInstance_Activated), where it has
+                // access to the UI thread's DispatcherQueue and the MainWindow. Keeping the
+                // handler there is what lets a second launch (e.g. the desktop shortcut) bring
+                // the trayed-out window back to the foreground.
             }
             else
             {
@@ -102,9 +102,23 @@ namespace LauncherXWinUI
                CWMO_DEFAULT, INFINITE, 1,
                [redirectEventHandle], out uint handleIndex);
 
-            // Bring the window to the foreground
-            Process process = Process.GetProcessById((int)keyInstance.ProcessId);
-            SetForegroundWindow(process.MainWindowHandle);
+            // Bring the window to the foreground. The reliable path is the AppInstance.Activated
+            // handler in App.xaml.cs (which can restore a hidden/trayed-out window); this
+            // SetForegroundWindow is a best-effort fallback for when the window is already visible.
+            // Guard against IntPtr.Zero so we don't fail when the window is hidden to the tray
+            // (Process.MainWindowHandle is zero for a hidden window).
+            try
+            {
+                Process process = Process.GetProcessById((int)keyInstance.ProcessId);
+                if (process.MainWindowHandle != IntPtr.Zero)
+                {
+                    SetForegroundWindow(process.MainWindowHandle);
+                }
+            }
+            catch
+            {
+                // Best-effort; the Activated handler is the authoritative path.
+            }
         }
 
     }
