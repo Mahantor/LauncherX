@@ -35,7 +35,6 @@ namespace LauncherXWinUI
         /// <summary>
         /// Observable collection of TabViewItems for tab support (Feature 3).
         /// </summary>
-        public ObservableCollection<object> TabItems { get; set; } = new ObservableCollection<object>();
 
         public MainWindow()
         {
@@ -352,7 +351,6 @@ namespace LauncherXWinUI
                 ApplyFromSettings();
 
                 // Initialise tabs (Feature 3)
-                InitializeTabs();
 
                 // Monitor when the window is resized so that we can adjust the position of the GridView as necesssary
                 this.SizeChanged += WindowEx_SizeChanged;
@@ -381,7 +379,6 @@ namespace LauncherXWinUI
                 ApplyFromSettings();
 
                 // Initialise tabs (Feature 3)
-                InitializeTabs();
 
                 // Monitor when the window is resized so that we can adjust the position of the GridView as necesssary
                 this.SizeChanged += WindowEx_SizeChanged;
@@ -1186,73 +1183,19 @@ namespace LauncherXWinUI
         /// <summary>
         /// Initialises the tab view from saved settings (Feature 3).
         /// </summary>
-        private void InitializeTabs()
-        {
-            TabItems.Clear();
 
-            foreach (var tabInfo in UserSettingsClass.Tabs)
-            {
-                var tabItem = new Microsoft.UI.Xaml.Controls.TabViewItem();
-                tabItem.Header = tabInfo.TabName;
-                tabItem.Tag = tabInfo.TabId;
-                TabItems.Add(tabItem);
-            }
 
-            if (TabItems.Count == 0)
-            {
-                // Ensure at least one tab
-                var defaultTab = new Microsoft.UI.Xaml.Controls.TabViewItem();
-                defaultTab.Header = "Default";
-                defaultTab.Tag = Guid.NewGuid().ToString();
-                TabItems.Add(defaultTab);
-
-                UserSettingsClass.Tabs.Clear();
-                UserSettingsClass.Tabs.Add(new TabInfo { TabName = "Default", IsActive = true });
-            }
-
-            MainTabView.SelectedIndex = 0;
-            UpdateRemoveTabBtnVisibility();
         }
 
         /// <summary>
         /// Handles the add-tab button click (Feature 3).
         /// </summary>
-        private void MainTabView_AddTabButtonClick(Microsoft.UI.Xaml.Controls.TabView sender, object args)
-        {
-            var newTab = new Microsoft.UI.Xaml.Controls.TabViewItem();
-            newTab.Header = "New tab";
-            newTab.Tag = Guid.NewGuid().ToString();
-            TabItems.Add(newTab);
-            MainTabView.SelectedItem = newTab;
-
-            // Save to settings
-            UserSettingsClass.Tabs.Add(new TabInfo { TabName = "New tab", IsActive = true });
-            UserSettingsClass.WriteSettingsFile();
-        }
-
-        /// <summary>
         /// Handles tab selection changes (Feature 3).
         /// </summary>
-        private void MainTabView_TabStripSelectionChanged(Microsoft.UI.Xaml.Controls.TabView sender, Microsoft.UI.Xaml.Controls.TabViewTabStripSelectionChangedEventArgs args)
-        {
-            RemoveTabBtn.Visibility = TabItems.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
-        }
 
         /// <summary>
         /// Removes the current tab (Feature 3).
         /// </summary>
-        private void RemoveTabBtn_Click(object sender, RoutedEventArgs e)
-        {
-            if (TabItems.Count <= 1) return;
-
-            var currentTab = MainTabView.SelectedItem as Microsoft.UI.Xaml.Controls.TabViewItem;
-            if (currentTab != null)
-            {
-                string tabId = currentTab.Tag as string;
-                TabItems.Remove(currentTab);
-                UserSettingsClass.Tabs.RemoveAll(t => t.TabId == tabId);
-                UserSettingsClass.WriteSettingsFile();
-            }
         }
 
         /// <summary>
