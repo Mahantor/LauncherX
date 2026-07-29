@@ -15,7 +15,7 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Setup .NET 8.0 SDK
+      - name: Setup .NET 8.0
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
@@ -28,7 +28,7 @@ jobs:
         run: dotnet build LauncherX.sln -c Release -p:Platform=x64 --no-restore
 
       - name: Publish LauncherX (self-contained x64)
-        run: dotnet publish LauncherXWinUI/LauncherXWinUI.csproj -c Release -p:Platform=x64 -p:RuntimeIdentifier=win-x64 -p:SelfContained=true -p:WindowsPackageType=None -p:PublishSingleFile=false -p:PublishTrimmed=true -p:PublishReadyToRun=true --self-contained true --output publish/x64 --no-restore
+        run: dotnet publish LauncherXWinUI/LauncherXWinUI.csproj -c Release -p:Platform=x64 -p:RuntimeIdentifier=win-x64 -p:SelfContained=true -p:WindowsPackageType=None --output publish/x64 --no-restore
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
