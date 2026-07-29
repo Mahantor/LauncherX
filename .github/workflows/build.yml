@@ -15,7 +15,7 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Setup .NET 8.0
+      - name: Setup .NET 8.0 SDK
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
@@ -25,32 +25,13 @@ jobs:
         run: dotnet restore LauncherX.sln
 
       - name: Build LauncherX (x64 Release)
-        continue-on-error: true
-        run: dotnet build LauncherX.sln -c Release -p:Platform=x64 --no-restore -v:n
-
-      - name: Upload XAML compiler debug artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: XAML-debug
-          path: |
-            LauncherXWinUI/obj/x64/Release/net8.0-windows10.0.22621.0/win-x64/input.json
-            LauncherXWinUI/obj/x64/Release/net8.0-windows10.0.22621.0/win-x64/output.json
-            LauncherXWinUI/obj/x64/Release/net8.0-windows10.0.22621.0/win-x64/*.log
-          compression-level: 1
-          if-no-files-found: warn
-
-      - name: Build LauncherX (x64 Release) — actually fail on error
-        if: always()
         run: dotnet build LauncherX.sln -c Release -p:Platform=x64 --no-restore
 
       - name: Publish LauncherX (self-contained x64)
-        if: success()
         run: dotnet publish LauncherXWinUI/LauncherXWinUI.csproj -c Release -p:Platform=x64 -p:RuntimeIdentifier=win-x64 -p:SelfContained=true -p:WindowsPackageType=None -p:PublishSingleFile=false -p:PublishTrimmed=true -p:PublishReadyToRun=true --self-contained true --output publish/x64 --no-restore
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
-        if: success()
         with:
           name: LauncherX-Windows11-x64
           path: publish/x64/
