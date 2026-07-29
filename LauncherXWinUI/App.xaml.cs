@@ -125,8 +125,6 @@ namespace LauncherXWinUI
                 e.Flyout = flyout;
             };
 
-            StartAutoBackupTimer();
-
             // Launch MainWindow
             GetMainWindow();
         }
@@ -140,21 +138,7 @@ namespace LauncherXWinUI
         /// <summary>
         /// Exits the application and cleans up the necessary objects
         /// </summary>
-        private static System.Threading.Timer BackupTimer = null;
-
-        private static void StartAutoBackupTimer()
-        {
-            if (LauncherXWinUI.Classes.UserSettingsClass.BackupIntervalHours > 0)
-            {
-                int intervalMs = LauncherXWinUI.Classes.UserSettingsClass.BackupIntervalHours * 3600000;
-                BackupTimer = new System.Threading.Timer((state) =>
-                {
-                    LauncherXWinUI.Classes.UserSettingsClass.PerformBackup();
-                }, null, intervalMs, intervalMs);
-            }
-        }
-
-        public static void ExitApplication()
+public static void ExitApplication()
         {
             IsExiting = true;
             AppTrayIcon.Dispose();
