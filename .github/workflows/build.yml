@@ -24,10 +24,25 @@ jobs:
       - name: Restore NuGet packages
         run: dotnet restore LauncherX.sln
 
-      # Build with diagnostic verbosity to capture the XAML compiler error details
-      - name: Build LauncherX (x64 Release) — diagnostic verbosity
-        run: dotnet build LauncherX.sln -c Release -p:Platform=x64 --no-restore -v diag 2>&1
-        continue-on-error: true
+      # Build with the XAML compiler stderr piped to a file for debugging
+      - name: Build LauncherX (x64 Release) with XAML debug
+        shell: pwsh
+        run: |
+          dotnet build LauncherX.sln -c Release -p:Platform=x64 --no-restore -v:d 2>&1 | Tee-Object -FilePath build_log.txt
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "=== Checking output.json for XAML compiler errors ==="
+            $jsonPath = "LauncherXWinUI\obj\x64\Release\net8.0-windows10.0.22621.0\win-x64\output.json"
+            if (Test-Path $jsonPath) {
+              Get-Content $jsonPath -Raw | Write-Host
+            }
+            # Also check if input.json exists to see what was passed
+            $inputPath = "LauncherXWinUI\obj\x64\Release\net8.0-windows10.0.22621.0\win-x64\input.json"
+            if (Test-Path $inputPath) {
+              Get-Content $inputPath -Raw | Out-File -FilePath input.json -Encoding utf8
+              Write-Host "=== input.json saved for inspection ==="
+            }
+            exit 1
+          }
 
       - name: Publish LauncherX (self-contained x64)
         if: success()
