@@ -191,6 +191,23 @@
                         OnContent="Yes" />
                 </wct:SettingsCard>
 
+                <!--  Close behaviour  -->
+                <wct:SettingsCard
+                    Margin="0,5,0,0"
+                    Description="Choose what happens when you close LauncherX."
+                    Header="Close behaviour">
+                    <wct:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE711;" />
+                    </wct:SettingsCard.HeaderIcon>
+                    <ComboBox
+                        x:Name="CloseBehaviourComboBox"
+                        Width="180"
+                        SelectedIndex="0">
+                        <x:String>MinimiseToTray</x:String>
+                        <x:String>Exit</x:String>
+                    </ComboBox>
+                </wct:SettingsCard>
+
                 <!--#endregion-->
 
                 <!--#region Updates-->
@@ -253,6 +270,51 @@
                         Message="Please check your internet connection, or try again later."
                         Severity="Error" />
                 </StackPanel>
+
+                <!--#endregion-->
+
+                <!--#region Auto backup (Feature 5)-->
+                <TextBlock
+                    Margin="0,15,0,0"
+                    FontSize="18"
+                    FontWeight="Bold"
+                    Text="Auto backup" />
+
+                <wct:SettingsCard
+                    Margin="0,10,0,0"
+                    Description="Automatically backup your LauncherX items periodically. Set to 0 to disable."
+                    Header="Backup interval (hours)">
+                    <wct:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE792;" />
+                    </wct:SettingsCard.HeaderIcon>
+                    <StackPanel Orientation="Horizontal">
+                        <NumberBox
+                            x:Name="BackupIntervalNumberBox"
+                            Width="120"
+                            Minimum="0"
+                            Maximum="168"
+                            SmallChange="1"
+                            LargeChange="24"
+                            SpinButtonPlacementMode="Inline" />
+                        <TextBlock
+                            Margin="10,0,0,0"
+                            VerticalAlignment="Center"
+                            Text="hours (0 = off)" />
+                    </StackPanel>
+                </wct:SettingsCard>
+
+                <wct:SettingsCard
+                    Margin="0,5,0,0"
+                    Description="Restore LauncherX items from a backup zip file."
+                    Header="Restore from backup">
+                    <wct:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE8B5;" />
+                    </wct:SettingsCard.HeaderIcon>
+                    <Button
+                        x:Name="RestoreBackupBtn"
+                        Click="RestoreBackupBtn_Click"
+                        Content="Restore..." />
+                </wct:SettingsCard>
 
                 <!--#endregion-->
 

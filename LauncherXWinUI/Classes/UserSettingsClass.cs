@@ -16,6 +16,16 @@ using System.Runtime.CompilerServices;
 namespace LauncherXWinUI.Classes
 {
     /// <summary>
+    /// Represents a single tab in LauncherX (Feature 3).
+    /// </summary>
+    public class TabInfo
+    {
+        public string TabId { get; set; } = Guid.NewGuid().ToString();
+        public string TabName { get; set; } = "New tab";
+        public bool IsActive { get; set; } = false;
+    }
+
+    /// <summary>
     /// Class to store variables to read/write user settings to a json file
     /// </summary>
     public class UserSettingsJson
@@ -29,6 +39,10 @@ namespace LauncherXWinUI.Classes
         public string activationShortcut { get; set; } = "Ctrl L";
         public bool runOnStartup { get; set; } = false;
         public bool minimiseOnItemLaunch { get; set; } = false;
+        public string closeBehaviour { get; set; } = "MinimiseToTray";
+        public int backupIntervalHours { get; set; } = 0;
+        public string lastBackupTime { get; set; } = "";
+        public List<TabInfo> tabs { get; set; } = new List<TabInfo> { new TabInfo { TabName = "Default", IsActive = true } };
     }
 
     /// <summary>

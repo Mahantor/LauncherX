@@ -52,7 +52,7 @@
 
             <Grid
                 x:Name="ControlsGrid"
-                Grid.Row="1"
+                Grid.Row="2"
                 Margin="20,0,20,0">
 
                 <!--  Search Box + Settings Button + Close button (for fullscreen mode)  -->
@@ -198,6 +198,16 @@
 
                     <TextBlock
                         x:Name="HeaderTextBlock"
+                    
+                    <!-- Item and group count (Feature 11) -->
+                    <TextBlock
+                        x:Name="ItemCountTextBlock"
+                        Margin="10,0,0,0"
+                        VerticalAlignment="Center"
+                        FontSize="12"
+                        Opacity="0.6"
+                        Text="0 items · 0 groups"
+                        Visibility="Visible" />
                         Grid.Column="0"
                         HorizontalAlignment="Stretch"
                         VerticalAlignment="Center"
@@ -247,15 +257,48 @@
 
                 <Grid.RowDefinitions>
                     <RowDefinition Height="auto" />
+                    <RowDefinition Height="auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
                 <!--  IsOpen=False will still reserve space for the margins of the InfoBar, so we must adjust the margins of the other elements to account for that  -->
+                <!-- TabView for multi-tab support (Feature 3) -->
+                <Grid Grid.Row="0" Margin="5,5,5,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TabView
+                        x:Name="MainTabView"
+                        Grid.Column="0"
+                        AddTabButtonClick="MainTabView_AddTabButtonClick"
+                        TabCloseButtonMode="Auto"
+                        TabStripSelectionChanged="MainTabView_TabStripSelectionChanged" />
+
+                    <Button
+                        x:Name="RemoveTabBtn"
+                        Grid.Column="1"
+                        Margin="2,0,0,0"
+                        VerticalAlignment="Center"
+                        Click="RemoveTabBtn_Click"
+                        ToolTipService.ToolTip="Remove current tab"
+                        Visibility="Collapsed">
+                        <Button.Content>
+                            <StackPanel Orientation="Horizontal">
+                                <FontIcon FontSize="12" Glyph="&#xE74D;" />
+                                <TextBlock Margin="3,0,0,0" Text="-" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button.Content>
+                    </Button>
+                </Grid>
+
                 <InfoBar
                     x:Name="UpdateInfoBar"
                     Title="Update available"
                     Grid.Row="0"
-                    Margin="20,10,20,0"
+                    Margin="20,50,20,0"
                     IsOpen="False"
                     Message="To download it, click the &quot;Get update&quot; button."
                     Severity="Informational">
@@ -271,7 +314,7 @@
 
                 <StackPanel
                     x:Name="EmptyNotice"
-                    Grid.Row="1"
+                    Grid.Row="2"
                     MinHeight="55"
                     MaxWidth="400"
                     Margin="0,-10,0,20"
@@ -302,7 +345,7 @@
 
                 <GridView
                     x:Name="ItemsGridView"
-                    Grid.Row="1"
+                    Grid.Row="2"
                     Margin="20,10,20,20"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Stretch"

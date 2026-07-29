@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.UI.Dispatching;
+using WinRT.Interop;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
 
@@ -51,7 +52,18 @@ namespace LauncherXWinUI
                 // An existing running instance of LauncherX does not exist, continue the activation
                 keyInstance.Activated += (object sender, AppActivationArguments args) =>
                 {
-                    ExtendedActivationKind kind = args.Kind;
+                    // Bring the existing MainWindow to the foreground
+                    // when the user double-clicks the desktop shortcut/exe
+                    App.MainWindow?.DispatcherQueue?.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Normal, () =>
+                    {
+                        if (App.MainWindow != null)
+                        {
+                            IntPtr hWnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
+                            Shell32.ShowWindow(hWnd, Shell32.SW_SHOW);
+                            Shell32.ShowWindow(hWnd, Shell32.SW_RESTORE);
+                            App.MainWindow.Activate();
+                        }
+                    });
                 };
             }
             else
