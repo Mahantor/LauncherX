@@ -1,6 +1,5 @@
 name: Build LauncherX for Windows 11 x64
 
-# Trigger on every push and PR to the main branch, plus manual dispatch
 on:
   push:
     branches: [ master ]
@@ -13,43 +12,30 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      # 1. Check out the repository
       - name: Checkout source
         uses: actions/checkout@v4
 
-      # 2. Install the .NET 8 SDK
       - name: Setup .NET 8.0
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
           dotnet-quality: 'ga'
 
-      # 3. Restore NuGet packages
       - name: Restore NuGet packages
         run: dotnet restore LauncherX.sln
 
-      # 4. Build the solution for x64 (Release)
-      - name: Build LauncherX (x64 Release)
-        run: dotnet build LauncherX.sln -c Release -p:Platform=x64 --no-restore
+      # Build with diagnostic verbosity to capture the XAML compiler error details
+      - name: Build LauncherX (x64 Release) — diagnostic verbosity
+        run: dotnet build LauncherX.sln -c Release -p:Platform=x64 --no-restore -v diag 2>&1
+        continue-on-error: true
 
-      # 5. Publish as a self-contained app (includes .NET runtime)
       - name: Publish LauncherX (self-contained x64)
-        run: dotnet publish LauncherXWinUI/LauncherXWinUI.csproj `
-          -c Release `
-          -p:Platform=x64 `
-          -p:RuntimeIdentifier=win-x64 `
-          -p:SelfContained=true `
-          -p:WindowsPackageType=None `
-          -p:PublishSingleFile=false `
-          -p:PublishTrimmed=true `
-          -p:PublishReadyToRun=true `
-          --self-contained true `
-          --output publish/x64 `
-          --no-restore
+        if: success()
+        run: dotnet publish LauncherXWinUI/LauncherXWinUI.csproj -c Release -p:Platform=x64 -p:RuntimeIdentifier=win-x64 -p:SelfContained=true -p:WindowsPackageType=None -p:PublishSingleFile=false -p:PublishTrimmed=true -p:PublishReadyToRun=true --self-contained true --output publish/x64 --no-restore
 
-      # 6. Upload the published output as a downloadable artifact
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: LauncherX-Windows11-x64
           path: publish/x64/
