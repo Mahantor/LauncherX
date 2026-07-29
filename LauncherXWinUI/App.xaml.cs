@@ -38,15 +38,6 @@ namespace LauncherXWinUI
         /// </summary>
         public static HotKeyHook ActivationHotKeyHook;
 
-        /// <summary>
-        /// Flag set to true when ExitApplication() is called
-        /// </summary>
-        public static bool IsExiting = false;
-
-        /// <summary>
-        /// Flag set to true when ExitApplication() is called, so the window close handler
-        /// knows to actually close instead of hiding to the system tray.
-        /// </summary>
         public static bool IsExiting = false;
 
         /// <summary>
@@ -78,7 +69,7 @@ namespace LauncherXWinUI
                 return;
             }
 
-            // Window exists but may be hidden in system tray — show and activate it
+            // Window exists but may be hidden in system tray - show and activate it
             try
             {
                 IntPtr hWnd = WinRT.Interop.WindowNative.GetWindowHandle(MainWindow);
@@ -134,10 +125,6 @@ namespace LauncherXWinUI
                 e.Flyout = flyout;
             };
 
-            // Start the auto-backup timer (Feature 5)
-            StartAutoBackupTimer();
-
-            // Start the auto-backup timer (Feature 5)
             StartAutoBackupTimer();
 
             // Launch MainWindow
@@ -153,47 +140,14 @@ namespace LauncherXWinUI
         /// <summary>
         /// Exits the application and cleans up the necessary objects
         /// </summary>
-        /// <summary>
-        /// Starts a periodic timer to auto-backup settings (Feature 5).
-        /// </summary>
-        private static Timer BackupTimer = null;
-
-        private static void StartAutoBackupTimer()
-        {
-            if (UserSettingsClass.BackupIntervalHours > 0)
-            {
-                int intervalMs = UserSettingsClass.BackupIntervalHours * 3600000;
-
-                // Check if enough time has passed since the last backup
-                DateTime lastBackup = DateTime.MinValue;
-                if (!string.IsNullOrEmpty(UserSettingsClass.LastBackupTime))
-                {
-                    DateTime.TryParse(UserSettingsClass.LastBackupTime, out lastBackup);
-                }
-
-                TimeSpan timeSinceLastBackup = DateTime.Now - lastBackup;
-                if (timeSinceLastBackup.TotalHours >= UserSettingsClass.BackupIntervalHours)
-                {
-                    UserSettingsClass.PerformBackup();
-                }
-
-                // Create a timer for the next backup
-                BackupTimer = new Timer((state) =>
-                {
-                    UserSettingsClass.PerformBackup();
-                }, null, intervalMs, intervalMs);
-            }
-        }
-
-        private static Timer BackupTimer = null;
+        private static System.Threading.Timer BackupTimer = null;
 
         private static void StartAutoBackupTimer()
         {
             if (LauncherXWinUI.Classes.UserSettingsClass.BackupIntervalHours > 0)
             {
                 int intervalMs = LauncherXWinUI.Classes.UserSettingsClass.BackupIntervalHours * 3600000;
-
-                BackupTimer = new Timer((state) =>
+                BackupTimer = new System.Threading.Timer((state) =>
                 {
                     LauncherXWinUI.Classes.UserSettingsClass.PerformBackup();
                 }, null, intervalMs, intervalMs);

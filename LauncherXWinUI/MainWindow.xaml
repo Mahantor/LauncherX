@@ -207,7 +207,6 @@
                         TextTrimming="CharacterEllipsis"
                         TextWrapping="NoWrap" />
 
-                    <!-- Item and group count (Feature 11) -->
                     <TextBlock
                         x:Name="ItemCountTextBlock"
                         Margin="10,0,0,0"

@@ -429,17 +429,11 @@ namespace LauncherXWinUI
 
         private void ItemsGridViewItems_VectorChanged(Windows.Foundation.Collections.IObservableVector<object> sender, Windows.Foundation.Collections.IVectorChangedEventArgs @event)
         {
-            // Show/Hide the EmptyNotice depending on whether there are items in the ItemsGridView
             if (ItemsGridView.Items.Count > 0)
-            {
                 EmptyNotice.Visibility = Visibility.Collapsed;
-            }
             else
-            {
                 EmptyNotice.Visibility = Visibility.Visible;
-            }
 
-            // Update item and group counts (Feature 11)
             UpdateItemCounts();
         }
 
@@ -775,7 +769,7 @@ namespace LauncherXWinUI
                 {
                     GridViewTile gridViewTile = gridViewItem as GridViewTile;
                     AllLauncherXItems.Add(gridViewTile);
-                    TileToGroupMap[gridViewTile] = null; // standalone item
+                    TileToGroupMap[gridViewTile] = null;
                 }
                 else if (gridViewItem is GridViewTileGroup)
                 {
@@ -783,7 +777,7 @@ namespace LauncherXWinUI
                     foreach (GridViewTile tile in gridViewTileGroup.Items)
                     {
                         AllLauncherXItems.Add(tile);
-                        TileToGroupMap[tile] = gridViewTileGroup.DisplayText; // belongs to a group
+                        TileToGroupMap[tile] = gridViewTileGroup.DisplayText;
                     }
                 }
             }
@@ -802,11 +796,10 @@ namespace LauncherXWinUI
                 {
                     if (gridViewTile.DisplayText.ToLower().Contains(sender.Text.ToLower()))
                     {
-                        // Show group name alongside item name (Feature 7)
-                        string groupName = TileToGroupMap.ContainsKey(gridViewTile) ? TileToGroupMap[gridViewTile] : null;
-                        if (!string.IsNullOrEmpty(groupName))
+                        string __gn = TileToGroupMap.ContainsKey(gridViewTile) ? TileToGroupMap[gridViewTile] : null;
+                        if (!string.IsNullOrEmpty(__gn))
                         {
-                            SearchBoxDropdownItems.Add(gridViewTile.DisplayText + " (" + groupName + ")");
+                            SearchBoxDropdownItems.Add(gridViewTile.DisplayText + " (" + __gn + ")");
                         }
                         else
                         {
@@ -1066,80 +1059,51 @@ namespace LauncherXWinUI
             int itemCount = 0;
             int groupCount = 0;
 
-            foreach (var gridViewItem in ItemsGridView.Items)
+            foreach (var gvi in ItemsGridView.Items)
             {
-                if (gridViewItem is GridViewTile)
-                {
-                    itemCount++;
-                }
-                else if (gridViewItem is GridViewTileGroup)
-                {
-                    groupCount++;
-                    GridViewTileGroup group = gridViewItem as GridViewTileGroup;
-                    itemCount += group.Items.Count;
-                }
+                if (gvi is GridViewTile) itemCount++;
+                else if (gvi is GridViewTileGroup grp) { groupCount++; itemCount += grp.Items.Count; }
             }
 
-            ItemCountTextBlock.Text = itemCount.ToString() + " items · " + groupCount.ToString() + " groups";
+            ItemCountTextBlock.Text = itemCount.ToString() + " items \u00b7 " + groupCount.ToString() + " groups";
         }
 
-        /// <summary>
-        /// Removes duplicate shortcuts (by ExecutingPath) from the grid (Feature 9).
-        /// </summary>
         private async void MenuRemoveDuplicatesOption_Click(object sender, RoutedEventArgs e)
         {
             HashSet<string> seenPaths = new HashSet<string>();
             List<UserControl> toRemove = new List<UserControl>();
-            int removedCount = 0;
+            int removed = 0;
 
-            foreach (var gridViewItem in ItemsGridView.Items.ToList())
+            foreach (var gvi in ItemsGridView.Items.ToList())
             {
-                if (gridViewItem is GridViewTile tile)
+                if (gvi is GridViewTile t)
                 {
-                    string p = tile.ExecutingPath?.ToLowerInvariant();
-                    if (!string.IsNullOrEmpty(p) && !seenPaths.Add(p))
-                    {
-                        toRemove.Add(tile);
-                        removedCount++;
-                    }
+                    string p = t.ExecutingPath?.ToLowerInvariant();
+                    if (!string.IsNullOrEmpty(p) && !seenPaths.Add(p)) { toRemove.Add(t); removed++; }
                 }
-                else if (gridViewItem is GridViewTileGroup group)
+                else if (gvi is GridViewTileGroup g)
                 {
-                    List<GridViewTile> groupTilesToRemove = new List<GridViewTile>();
-                    foreach (var tile in group.Items)
+                    var gr = new List<GridViewTile>();
+                    foreach (var tile in g.Items)
                     {
                         string p = tile.ExecutingPath?.ToLowerInvariant();
-                        if (!string.IsNullOrEmpty(p) && !seenPaths.Add(p))
-                        {
-                            groupTilesToRemove.Add(tile);
-                            removedCount++;
-                        }
+                        if (!string.IsNullOrEmpty(p) && !seenPaths.Add(p)) { gr.Add(tile); removed++; }
                     }
-                    foreach (var tile in groupTilesToRemove)
-                    {
-                        group.Items.Remove(tile);
-                    }
+                    foreach (var tile in gr) g.Items.Remove(tile);
                 }
             }
+            foreach (var item in toRemove) ItemsGridView.Items.Remove(item);
 
-            foreach (var item in toRemove)
-            {
-                ItemsGridView.Items.Remove(item);
-            }
-
-            ContentDialog report = new ContentDialog();
-            report.XamlRoot = Container.XamlRoot;
-            report.Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style;
-            report.Title = "Duplicates removed";
-            report.PrimaryButtonText = "OK";
-            report.DefaultButton = ContentDialogButton.Primary;
-            report.Content = "Removed " + removedCount.ToString() + " duplicate shortcut(s).";
-            await report.ShowAsync();
+            ContentDialog dlg = new ContentDialog();
+            dlg.XamlRoot = Container.XamlRoot;
+            dlg.Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style;
+            dlg.Title = "Duplicates removed";
+            dlg.PrimaryButtonText = "OK";
+            dlg.Content = "Removed " + removed.ToString() + " duplicate(s).";
+            await dlg.ShowAsync();
         }
 
-        /// <summary>
-        /// Saves items when the window is genuinely closed (app exiting).
-        /// </summary>
+        // The last event handler - save items when the window is closed
         private void WindowEx_Closed(object sender, WindowEventArgs args)
         {
             multiFileSystemWatcher.Dispose();

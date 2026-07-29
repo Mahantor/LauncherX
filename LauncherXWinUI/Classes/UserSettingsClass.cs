@@ -16,16 +16,6 @@ using System.Runtime.CompilerServices;
 namespace LauncherXWinUI.Classes
 {
     /// <summary>
-    /// Represents a single tab in LauncherX (Feature 3).
-    /// </summary>
-    public class TabInfo
-    {
-        public string TabId { get; set; } = Guid.NewGuid().ToString();
-        public string TabName { get; set; } = "New tab";
-        public bool IsActive { get; set; } = false;
-    }
-
-    /// <summary>
     /// Class to store variables to read/write user settings to a json file
     /// </summary>
     public class TabInfo
@@ -49,7 +39,7 @@ namespace LauncherXWinUI.Classes
         public string closeBehaviour { get; set; } = "MinimiseToTray";
         public int backupIntervalHours { get; set; } = 0;
         public string lastBackupTime { get; set; } = "";
-        public List<TabInfo> tabs { get; set; } = new List<TabInfo> { new TabInfo { TabName = "Default", IsActive = true } };
+        public System.Collections.Generic.List<TabInfo> tabs { get; set; } = new System.Collections.Generic.List<TabInfo> { new TabInfo { TabName = "Default", IsActive = true } };
     }
 
     /// <summary>
@@ -136,7 +126,7 @@ namespace LauncherXWinUI.Classes
         public static string CloseBehaviour = "MinimiseToTray";
         public static int BackupIntervalHours = 0;
         public static string LastBackupTime = "";
-        public static string BackupDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\LauncherX\Backup\";
+        public static string BackupDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\LauncherX\Backup";
         public static System.Collections.Generic.List<TabInfo> Tabs = new System.Collections.Generic.List<TabInfo> { new TabInfo { TabName = "Default", IsActive = true } };
 
         // DIRECTORIES
