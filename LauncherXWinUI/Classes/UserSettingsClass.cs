@@ -28,6 +28,13 @@ namespace LauncherXWinUI.Classes
     /// <summary>
     /// Class to store variables to read/write user settings to a json file
     /// </summary>
+    public class TabInfo
+    {
+        public string TabId { get; set; } = System.Guid.NewGuid().ToString();
+        public string TabName { get; set; } = "New tab";
+        public bool IsActive { get; set; } = false;
+    }
+
     public class UserSettingsJson
     {
         // Intialise this class with default values, in case some values dont exist in userSettings.json
@@ -125,6 +132,12 @@ namespace LauncherXWinUI.Classes
         /// Variable which stores whether to minimise LauncherX to the taskbar after an item is launched
         /// </summary>
         public static bool MinimiseOnItemLaunch = false;
+
+        public static string CloseBehaviour = "MinimiseToTray";
+        public static int BackupIntervalHours = 0;
+        public static string LastBackupTime = "";
+        public static string BackupDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\LauncherX\Backup\";
+        public static System.Collections.Generic.List<TabInfo> Tabs = new System.Collections.Generic.List<TabInfo> { new TabInfo { TabName = "Default", IsActive = true } };
 
         // DIRECTORIES
         /// <summary>

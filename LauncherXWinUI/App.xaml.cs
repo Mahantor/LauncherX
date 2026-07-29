@@ -39,6 +39,11 @@ namespace LauncherXWinUI
         public static HotKeyHook ActivationHotKeyHook;
 
         /// <summary>
+        /// Flag set to true when ExitApplication() is called
+        /// </summary>
+        public static bool IsExiting = false;
+
+        /// <summary>
         /// Flag set to true when ExitApplication() is called, so the window close handler
         /// knows to actually close instead of hiding to the system tray.
         /// </summary>
@@ -132,6 +137,9 @@ namespace LauncherXWinUI
             // Start the auto-backup timer (Feature 5)
             StartAutoBackupTimer();
 
+            // Start the auto-backup timer (Feature 5)
+            StartAutoBackupTimer();
+
             // Launch MainWindow
             GetMainWindow();
         }
@@ -173,6 +181,21 @@ namespace LauncherXWinUI
                 BackupTimer = new Timer((state) =>
                 {
                     UserSettingsClass.PerformBackup();
+                }, null, intervalMs, intervalMs);
+            }
+        }
+
+        private static Timer BackupTimer = null;
+
+        private static void StartAutoBackupTimer()
+        {
+            if (LauncherXWinUI.Classes.UserSettingsClass.BackupIntervalHours > 0)
+            {
+                int intervalMs = LauncherXWinUI.Classes.UserSettingsClass.BackupIntervalHours * 3600000;
+
+                BackupTimer = new Timer((state) =>
+                {
+                    LauncherXWinUI.Classes.UserSettingsClass.PerformBackup();
                 }, null, intervalMs, intervalMs);
             }
         }
