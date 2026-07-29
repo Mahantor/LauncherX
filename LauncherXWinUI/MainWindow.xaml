@@ -274,8 +274,7 @@
                         x:Name="MainTabView"
                         Grid.Column="0"
                         AddTabButtonClick="MainTabView_AddTabButtonClick"
-                        TabCloseButtonMode="Auto"
-                        TabStripSelectionChanged="MainTabView_TabStripSelectionChanged" />
+                        TabCloseButtonMode="Auto" />
 
                     <Button
                         x:Name="RemoveTabBtn"

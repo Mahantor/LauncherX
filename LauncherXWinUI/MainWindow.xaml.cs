@@ -1211,6 +1211,7 @@ namespace LauncherXWinUI
             }
 
             MainTabView.SelectedIndex = 0;
+            UpdateRemoveTabBtnVisibility();
         }
 
         /// <summary>
