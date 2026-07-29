@@ -103,7 +103,6 @@
                         <Button
                             x:Name="AddItemToGroupBtn"
                             Margin="10,0,0,0"
-                            Click="AddItemToGroupBtn_Click"
                             Content="+ Add item">
                             <Button.Flyout>
                                 <MenuFlyout Placement="Bottom">
