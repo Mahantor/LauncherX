@@ -417,3 +417,11 @@ namespace LauncherXWinUI.Classes
         ref int piIndex);
     };
 }
+
+        // Window visibility API
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        public const int SW_HIDE = 0;
+        public const int SW_SHOW = 5;
+        public const int SW_RESTORE = 9;

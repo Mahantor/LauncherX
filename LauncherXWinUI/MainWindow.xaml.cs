@@ -9,6 +9,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -31,6 +32,11 @@ namespace LauncherXWinUI
         /// </summary>
         public MultiFileSystemWatcher multiFileSystemWatcher = new MultiFileSystemWatcher();
 
+        /// <summary>
+        /// Observable collection of TabViewItems for tab support (Feature 3).
+        /// </summary>
+        public ObservableCollection<object> TabItems { get; set; } = new ObservableCollection<object>();
+
         public MainWindow()
         {
             this.InitializeComponent();
@@ -51,6 +57,10 @@ namespace LauncherXWinUI
 
             // Used in-tandem with the code in App.xaml.cs, for WinUIEx to save window position: https://github.com/dotMorten/WinUIEx/issues/61
             this.PersistenceId = "LauncherX-250f2258-1995-4edb-9db7-329a61a90a07";
+
+            // Intercept window close — hide to system tray instead of destroying the window
+            // unless ExitApplication() was explicitly called
+            this.AppWindow.Closing += OnAppWindowClosing;
         }
 
         // Helper methods
@@ -341,6 +351,9 @@ namespace LauncherXWinUI
                 // Once we have initialised the UserSettingsClass with the correct values, update from UserSettingsClass
                 ApplyFromSettings();
 
+                // Initialise tabs (Feature 3)
+                InitializeTabs();
+
                 // Monitor when the window is resized so that we can adjust the position of the GridView as necesssary
                 this.SizeChanged += WindowEx_SizeChanged;
 
@@ -366,6 +379,9 @@ namespace LauncherXWinUI
 
                 // Once we have initialised the UserSettingsClass with the correct values, update from UserSettingsClass
                 ApplyFromSettings();
+
+                // Initialise tabs (Feature 3)
+                InitializeTabs();
 
                 // Monitor when the window is resized so that we can adjust the position of the GridView as necesssary
                 this.SizeChanged += WindowEx_SizeChanged;
@@ -438,6 +454,34 @@ namespace LauncherXWinUI
             {
                 EmptyNotice.Visibility = Visibility.Visible;
             }
+
+            // Update item and group counts (Feature 11)
+            UpdateItemCounts();
+        }
+
+        /// <summary>
+        /// Updates the header text showing how many items and groups exist (Feature 11).
+        /// </summary>
+        private void UpdateItemCounts()
+        {
+            int itemCount = 0;
+            int groupCount = 0;
+
+            foreach (var gridViewItem in ItemsGridView.Items)
+            {
+                if (gridViewItem is GridViewTile)
+                {
+                    itemCount++;
+                }
+                else if (gridViewItem is GridViewTileGroup)
+                {
+                    groupCount++;
+                    GridViewTileGroup group = gridViewItem as GridViewTileGroup;
+                    itemCount += group.Items.Count;
+                }
+            }
+
+            ItemCountTextBlock.Text = $"{itemCount} items · {groupCount} groups";
         }
 
         private async void AddFileBtn_Click(object sender, RoutedEventArgs e)
@@ -458,8 +502,16 @@ namespace LauncherXWinUI
                 // Add the files from the addFileDialog
                 foreach (AddFileDialogListViewItem fileItem in addFileDialog.AddedFiles)
                 {
-                    // Create new GridViewTile for each item
-                    AddGridViewTile(fileItem.ExecutingPath, fileItem.ExecutingArguments, fileItem.DisplayText, fileItem.FileIcon);
+                    if (fileItem.CreateFormattedLink)
+                    {
+                        // Create new GridViewTile with formatted link (icon extracted)
+                        AddGridViewTile(fileItem.ExecutingPath, fileItem.ExecutingArguments, fileItem.DisplayText, fileItem.FileIcon);
+                    }
+                    else
+                    {
+                        // Create new GridViewTile as raw path (no icon extraction) — Feature 10
+                        AddGridViewTile(fileItem.ExecutingPath, fileItem.ExecutingArguments, System.IO.Path.GetFileName(fileItem.ExecutingPath), null);
+                    }
                 }
 
                 // Save items
@@ -759,9 +811,13 @@ namespace LauncherXWinUI
 
         List<GridViewTile> AllLauncherXItems = new List<GridViewTile>();
         List<string> SearchBoxDropdownItems = new List<string>();
+
+        // Maps each GridViewTile to its parent group name (Feature 7)
+        Dictionary<GridViewTile, string> TileToGroupMap = new Dictionary<GridViewTile, string>();
         private void SearchBox_GotFocus(object sender, RoutedEventArgs e)
         {
             AllLauncherXItems.Clear();
+            TileToGroupMap.Clear();
 
             // Retrieve all the items in LauncherX
             foreach (UserControl gridViewItem in ItemsGridView.Items)
@@ -770,6 +826,7 @@ namespace LauncherXWinUI
                 {
                     GridViewTile gridViewTile = gridViewItem as GridViewTile;
                     AllLauncherXItems.Add(gridViewTile);
+                    TileToGroupMap[gridViewTile] = null; // standalone item
                 }
                 else if (gridViewItem is GridViewTileGroup)
                 {
@@ -777,6 +834,7 @@ namespace LauncherXWinUI
                     foreach (GridViewTile tile in gridViewTileGroup.Items)
                     {
                         AllLauncherXItems.Add(tile);
+                        TileToGroupMap[tile] = gridViewTileGroup.DisplayText; // belongs to a group
                     }
                 }
             }
@@ -795,7 +853,16 @@ namespace LauncherXWinUI
                 {
                     if (gridViewTile.DisplayText.ToLower().Contains(sender.Text.ToLower()))
                     {
-                        SearchBoxDropdownItems.Add(gridViewTile.DisplayText);
+                        // Show group name alongside item name (Feature 7)
+                        string groupName = TileToGroupMap.ContainsKey(gridViewTile) ? TileToGroupMap[gridViewTile] : null;
+                        if (!string.IsNullOrEmpty(groupName))
+                        {
+                            SearchBoxDropdownItems.Add($"{gridViewTile.DisplayText} ({groupName})");
+                        }
+                        else
+                        {
+                            SearchBoxDropdownItems.Add(gridViewTile.DisplayText);
+                        }
                     }
                 }
                 sender.ItemsSource = SearchBoxDropdownItems;
@@ -922,9 +989,20 @@ namespace LauncherXWinUI
                 {
                     // This is a file
                     string filePath = storageItem.Path;
+                    string fileName = storageItem.Name;
 
-                    // Get the thumbnail of the file and add it to ItemsGridView
-                    AddGridViewTile(filePath, "", storageItem.Name, await IconHelpers.GetFileIcon(filePath));
+                    // Detect note files (.txt, .rtf) for Feature 4
+                    string ext = System.IO.Path.GetExtension(filePath).ToLowerInvariant();
+                    if (ext == ".txt" || ext == ".rtf" || ext == ".md")
+                    {
+                        // Add as a note — opens with default text editor
+                        AddGridViewTile(filePath, "", $"[Note] {fileName}", await IconHelpers.GetFileIcon(filePath));
+                    }
+                    else
+                    {
+                        // Get the thumbnail of the file and add it to ItemsGridView
+                        AddGridViewTile(filePath, "", fileName, await IconHelpers.GetFileIcon(filePath));
+                    }
                 }
             }
 
@@ -1045,7 +1123,170 @@ namespace LauncherXWinUI
             }
         }
 
-        // The last event handler - save items when the window is closed
+        /// <summary>
+        /// Removes duplicate shortcuts (by ExecutingPath) from the grid (Feature 9).
+        /// </summary>
+        private async void MenuRemoveDuplicatesOption_Click(object sender, RoutedEventArgs e)
+        {
+            HashSet<string> seenPaths = new HashSet<string>();
+            List<UserControl> toRemove = new List<UserControl>();
+            int removedCount = 0;
+
+            foreach (var gridViewItem in ItemsGridView.Items.ToList())
+            {
+                if (gridViewItem is GridViewTile tile)
+                {
+                    string p = tile.ExecutingPath?.ToLowerInvariant();
+                    if (!string.IsNullOrEmpty(p))
+                    {
+                        if (!seenPaths.Add(p))
+                        {
+                            toRemove.Add(tile);
+                            removedCount++;
+                        }
+                    }
+                }
+                else if (gridViewItem is GridViewTileGroup group)
+                {
+                    List<GridViewTile> groupTilesToRemove = new List<GridViewTile>();
+                    foreach (var tile in group.Items)
+                    {
+                        string p = tile.ExecutingPath?.ToLowerInvariant();
+                        if (!string.IsNullOrEmpty(p))
+                        {
+                            if (!seenPaths.Add(p))
+                            {
+                                groupTilesToRemove.Add(tile);
+                                removedCount++;
+                            }
+                        }
+                    }
+                    foreach (var tile in groupTilesToRemove)
+                    {
+                        group.Items.Remove(tile);
+                    }
+                }
+            }
+
+            foreach (var item in toRemove)
+            {
+                ItemsGridView.Items.Remove(item);
+            }
+
+            ContentDialog report = new ContentDialog();
+            report.XamlRoot = Container.XamlRoot;
+            report.Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style;
+            report.Title = "Duplicates removed";
+            report.PrimaryButtonText = "OK";
+            report.DefaultButton = ContentDialogButton.Primary;
+            report.Content = $"Removed {removedCount} duplicate shortcut(s).";
+            await report.ShowAsync();
+        }
+
+        /// <summary>
+        /// Initialises the tab view from saved settings (Feature 3).
+        /// </summary>
+        private void InitializeTabs()
+        {
+            TabItems.Clear();
+
+            foreach (var tabInfo in UserSettingsClass.Tabs)
+            {
+                var tabItem = new Microsoft.UI.Xaml.Controls.TabViewItem();
+                tabItem.Header = tabInfo.TabName;
+                tabItem.Tag = tabInfo.TabId;
+                TabItems.Add(tabItem);
+            }
+
+            if (TabItems.Count == 0)
+            {
+                // Ensure at least one tab
+                var defaultTab = new Microsoft.UI.Xaml.Controls.TabViewItem();
+                defaultTab.Header = "Default";
+                defaultTab.Tag = Guid.NewGuid().ToString();
+                TabItems.Add(defaultTab);
+
+                UserSettingsClass.Tabs.Clear();
+                UserSettingsClass.Tabs.Add(new TabInfo { TabName = "Default", IsActive = true });
+            }
+
+            MainTabView.SelectedIndex = 0;
+        }
+
+        /// <summary>
+        /// Handles the add-tab button click (Feature 3).
+        /// </summary>
+        private void MainTabView_AddTabButtonClick(Microsoft.UI.Xaml.Controls.TabView sender, object args)
+        {
+            var newTab = new Microsoft.UI.Xaml.Controls.TabViewItem();
+            newTab.Header = "New tab";
+            newTab.Tag = Guid.NewGuid().ToString();
+            TabItems.Add(newTab);
+            MainTabView.SelectedItem = newTab;
+
+            // Save to settings
+            UserSettingsClass.Tabs.Add(new TabInfo { TabName = "New tab", IsActive = true });
+            UserSettingsClass.WriteSettingsFile();
+        }
+
+        /// <summary>
+        /// Handles tab selection changes (Feature 3).
+        /// </summary>
+        private void MainTabView_TabStripSelectionChanged(Microsoft.UI.Xaml.Controls.TabView sender, Microsoft.UI.Xaml.Controls.TabViewTabStripSelectionChangedEventArgs args)
+        {
+            RemoveTabBtn.Visibility = TabItems.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        /// <summary>
+        /// Removes the current tab (Feature 3).
+        /// </summary>
+        private void RemoveTabBtn_Click(object sender, RoutedEventArgs e)
+        {
+            if (TabItems.Count <= 1) return;
+
+            var currentTab = MainTabView.SelectedItem as Microsoft.UI.Xaml.Controls.TabViewItem;
+            if (currentTab != null)
+            {
+                string tabId = currentTab.Tag as string;
+                TabItems.Remove(currentTab);
+                UserSettingsClass.Tabs.RemoveAll(t => t.TabId == tabId);
+                UserSettingsClass.WriteSettingsFile();
+            }
+        }
+
+        /// <summary>
+        /// Intercepts the window close — hides to system tray unless the app is genuinely exiting.
+        /// </summary>
+        private void OnAppWindowClosing(Microsoft.UI.Windowing.AppWindow sender, Microsoft.UI.Windowing.AppWindowClosingEventArgs args)
+        {
+            if (!App.IsExiting)
+            {
+                // Check the user's preference: MinimiseToTray (hide) or Exit (actually close)
+                if (UserSettingsClass.CloseBehaviour == "Exit")
+                {
+                    // User chose to exit — let the close proceed
+                    UserSettingsClass.SaveLauncherXItems(ItemsGridView.Items);
+                    App.IsExiting = true;
+                    App.ExitApplication();
+                }
+                else
+                {
+                    // Default: cancel the close — we're minimising to system tray instead
+                    args.Cancel = true;
+
+                    // Save items before hiding
+                    UserSettingsClass.SaveLauncherXItems(ItemsGridView.Items);
+
+                    // Hide the window (it stays alive in the system tray)
+                    IntPtr hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+                    Shell32.ShowWindow(hWnd, Shell32.SW_HIDE);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Saves items when the window is genuinely closed (app exiting).
+        /// </summary>
         private void WindowEx_Closed(object sender, WindowEventArgs args)
         {
             multiFileSystemWatcher.Dispose();

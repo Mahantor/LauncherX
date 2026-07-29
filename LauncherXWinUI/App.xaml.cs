@@ -8,6 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Runtime.InteropServices;
 using System.Text.Json.Nodes;
 using WinUIEx;
@@ -38,6 +39,12 @@ namespace LauncherXWinUI
         public static HotKeyHook ActivationHotKeyHook;
 
         /// <summary>
+        /// Flag set to true when ExitApplication() is called, so the window close handler
+        /// knows to actually close instead of hiding to the system tray.
+        /// </summary>
+        public static bool IsExiting = false;
+
+        /// <summary>
         /// Initializes the singleton application object. This is the first line of authored code
         /// executed, and as such is the logical equivalent of main() or WinMain().
         /// </summary>
@@ -66,9 +73,12 @@ namespace LauncherXWinUI
                 return;
             }
 
-            // Try to just activate the window, if it fails, create a new instance
+            // Window exists but may be hidden in system tray — show and activate it
             try
             {
+                IntPtr hWnd = WinRT.Interop.WindowNative.GetWindowHandle(MainWindow);
+                Shell32.ShowWindow(hWnd, Shell32.SW_SHOW);
+                Shell32.ShowWindow(hWnd, Shell32.SW_RESTORE);
                 MainWindow.Activate();
             }
             catch
@@ -119,6 +129,9 @@ namespace LauncherXWinUI
                 e.Flyout = flyout;
             };
 
+            // Start the auto-backup timer (Feature 5)
+            StartAutoBackupTimer();
+
             // Launch MainWindow
             GetMainWindow();
         }
@@ -132,8 +145,41 @@ namespace LauncherXWinUI
         /// <summary>
         /// Exits the application and cleans up the necessary objects
         /// </summary>
+        /// <summary>
+        /// Starts a periodic timer to auto-backup settings (Feature 5).
+        /// </summary>
+        private static Timer BackupTimer = null;
+
+        private static void StartAutoBackupTimer()
+        {
+            if (UserSettingsClass.BackupIntervalHours > 0)
+            {
+                int intervalMs = UserSettingsClass.BackupIntervalHours * 3600000;
+
+                // Check if enough time has passed since the last backup
+                DateTime lastBackup = DateTime.MinValue;
+                if (!string.IsNullOrEmpty(UserSettingsClass.LastBackupTime))
+                {
+                    DateTime.TryParse(UserSettingsClass.LastBackupTime, out lastBackup);
+                }
+
+                TimeSpan timeSinceLastBackup = DateTime.Now - lastBackup;
+                if (timeSinceLastBackup.TotalHours >= UserSettingsClass.BackupIntervalHours)
+                {
+                    UserSettingsClass.PerformBackup();
+                }
+
+                // Create a timer for the next backup
+                BackupTimer = new Timer((state) =>
+                {
+                    UserSettingsClass.PerformBackup();
+                }, null, intervalMs, intervalMs);
+            }
+        }
+
         public static void ExitApplication()
         {
+            IsExiting = true;
             AppTrayIcon.Dispose();
             ActivationHotKeyHook.Dispose();
             Application.Current.Exit();
