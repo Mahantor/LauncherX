@@ -136,7 +136,7 @@ namespace LauncherXWinUI.Classes
         public static string CloseBehaviour = "MinimiseToTray";
         public static int BackupIntervalHours = 0;
         public static string LastBackupTime = "";
-        public static string BackupDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\LauncherX\Backup\";
+        public static string BackupDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\LauncherX\Backup\";
         public static System.Collections.Generic.List<TabInfo> Tabs = new System.Collections.Generic.List<TabInfo> { new TabInfo { TabName = "Default", IsActive = true } };
 
         // DIRECTORIES
