@@ -86,8 +86,6 @@ namespace LauncherXWinUI.Controls.Dialogs
                 AddFileDialogListViewItem fileItem = item as AddFileDialogListViewItem;
                 if (fileItem != null)
                 {
-                    // Set formatting preference (Feature 10)
-                    fileItem.CreateFormattedLink = FormattingToggleSwitch.IsOn;
                     AddedFiles.Add(fileItem);
                 }
             }

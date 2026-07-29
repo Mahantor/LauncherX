@@ -90,31 +90,6 @@
                             Width="250"
                             Margin="10,0,0,0"
                             HorizontalAlignment="Left" />
-
-                        <!-- Select all toggle for multi-select (Feature 2) -->
-                        <ToggleButton
-                            x:Name="MultiSelectGroupToggle"
-                            Margin="10,0,0,0"
-                            Content="Select all"
-                            Checked="MultiSelectGroupToggle_Checked"
-                            Unchecked="MultiSelectGroupToggle_Unchecked" />
-
-                        <!-- Add item button (Feature 2) -->
-                        <Button
-                            x:Name="AddItemToGroupBtn"
-                            Margin="10,0,0,0"
-                            Content="+ Add item">
-                            <Button.Flyout>
-                                <MenuFlyout Placement="Bottom">
-                                    <MenuFlyoutItem
-                                        Click="AddFileToGroup_Click"
-                                        Text="Add a file" />
-                                    <MenuFlyoutItem
-                                        Click="AddFolderToGroup_Click"
-                                        Text="Add a folder" />
-                                </MenuFlyout>
-                            </Button.Flyout>
-                        </Button>
                     </StackPanel>
 
                     <GridView

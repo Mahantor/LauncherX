@@ -9,8 +9,6 @@ using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using Windows.Security.Cryptography.Certificates;
-using Windows.ApplicationModel.DataTransfer;
-using Windows.Storage;
 using Windows.UI;
 
 // To learn more about WinUI, the WinUI project structure,
@@ -32,11 +30,6 @@ namespace LauncherXWinUI.Controls.GridViewItems
 
             // Subscribe to the event to notify us when new items are added/removed to the GridViewTileGroup
             Items.CollectionChanged += Items_CollectionChanged;
-            Items.CollectionChanged += (s, e) => UpdatePreview();
-
-            // Subscribe to drag/drop for external items (Feature 1)
-            GroupPanel.DragOver += GroupPanel_DragOver;
-            GroupPanel.Drop += GroupPanel_Drop;
         }
 
         // Declare properties that this control will have
@@ -244,66 +237,6 @@ namespace LauncherXWinUI.Controls.GridViewItems
             }
         }
 
-        /// <summary>
-        /// Handles dragging external items over the group (Feature 1).
-        /// </summary>
-        private void GroupPanel_DragOver(object sender, DragEventArgs e)
-        {
-            // Accept files, folders, and URLs from external sources
-            if (e.DataView.Contains(StandardDataFormats.StorageItems) || e.DataView.Contains(StandardDataFormats.WebLink))
-            {
-                e.AcceptedOperation = DataPackageOperation.Copy;
-                HighlightControl();
-            }
-        }
-
-        /// <summary>
-        /// Handles dropping external items onto the group (Feature 1).
-        /// </summary>
-        private async void GroupPanel_Drop(object sender, DragEventArgs e)
-        {
-            UnhighlightControl();
-
-            if (e.DataView.Contains(StandardDataFormats.WebLink))
-            {
-                Uri uri = await e.DataView.GetWebLinkAsync();
-                string url = uri.ToString();
-                GridViewTile tile = new GridViewTile();
-                tile.ExecutingPath = url;
-                tile.DisplayText = url;
-                tile.ImageSource = LauncherXWinUI.Classes.IconHelpers.GetWebsiteIcon(url);
-                tile.Size = Items.Count > 0 ? Items[0].Size : 1.0;
-                Items.Add(tile);
-            }
-            else if (e.DataView.Contains(StandardDataFormats.StorageItems))
-            {
-                var items = await e.DataView.GetStorageItemsAsync();
-
-                foreach (var storageFolder in items.OfType<Windows.Storage.StorageFolder>())
-                {
-                    var bitmapImage = await LauncherXWinUI.Classes.IconHelpers.GetFolderIcon(storageFolder.Path);
-                    GridViewTile tile = new GridViewTile();
-                    tile.ExecutingPath = storageFolder.Path;
-                    tile.DisplayText = storageFolder.Name;
-                    tile.ImageSource = bitmapImage;
-                    tile.Size = Items.Count > 0 ? Items[0].Size : 1.0;
-                    Items.Add(tile);
-                }
-
-                foreach (var storageFile in items.OfType<Windows.Storage.StorageFile>())
-                {
-                    // Support .txt/.rtf notes (Feature 4)
-                    var bitmapImage = await LauncherXWinUI.Classes.IconHelpers.GetFileIcon(storageFile.Path);
-                    GridViewTile tile = new GridViewTile();
-                    tile.ExecutingPath = storageFile.Path;
-                    tile.DisplayText = storageFile.Name;
-                    tile.ImageSource = bitmapImage;
-                    tile.Size = Items.Count > 0 ? Items[0].Size : 1.0;
-                    Items.Add(tile);
-                }
-            }
-        }
-
         // Event Handlers
         // Similar to GridViewTile.
         // For event handlers relating to left/right clicking the GridViewTile,
@@ -420,65 +353,6 @@ namespace LauncherXWinUI.Controls.GridViewItems
         private void MenuRemoveOption_Click(object sender, RoutedEventArgs e)
         {
             RemoveFromGridView();
-        }
-
-        // ---- Feature 2: Multi-select and add-item handlers ----
-
-        private void MultiSelectGroupToggle_Checked(object sender, RoutedEventArgs e)
-        {
-            ItemsGridView.SelectionMode = ListViewSelectionMode.Multiple;
-            MultiSelectGroupToggle.Content = "Deselect all";
-            ItemsGridView.SelectAll();
-        }
-
-        private void MultiSelectGroupToggle_Unchecked(object sender, RoutedEventArgs e)
-        {
-            ItemsGridView.SelectionMode = ListViewSelectionMode.Single;
-            MultiSelectGroupToggle.Content = "Select all";
-            ItemsGridView.SelectedItems.Clear();
-        }
-
-        private async void AddFileToGroup_Click(object sender, RoutedEventArgs e)
-        {
-            var picker = new Windows.Storage.Pickers.FileOpenPicker();
-            picker.DereferenceLinks = false;
-            // WinUI 3 FileOpenPicker needs InitializeWithWindow
-            IntPtr hWnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
-            WinRT.Interop.InitializeWithWindow.Initialize(picker, hWnd);
-            picker.FileTypeFilter.Add("*");
-
-            var files = await picker.PickMultipleFilesAsync();
-            if (files != null)
-            {
-                foreach (var file in files)
-                {
-                    GridViewTile tile = new GridViewTile();
-                    tile.ExecutingPath = file.Path;
-                    tile.DisplayText = file.Name;
-                    tile.ImageSource = await IconHelpers.GetFileIcon(file.Path);
-                    tile.Size = Items.Count > 0 ? Items[0].Size : 1.0;
-                    Items.Add(tile);
-                }
-            }
-        }
-
-        private async void AddFolderToGroup_Click(object sender, RoutedEventArgs e)
-        {
-            var picker = new Windows.Storage.Pickers.FolderPicker();
-            IntPtr hWnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
-            WinRT.Interop.InitializeWithWindow.Initialize(picker, hWnd);
-            picker.FileTypeFilter.Add("*");
-
-            var folder = await picker.PickSingleFolderAsync();
-            if (folder != null)
-            {
-                GridViewTile tile = new GridViewTile();
-                tile.ExecutingPath = folder.Path;
-                tile.DisplayText = folder.Name;
-                tile.ImageSource = await IconHelpers.GetFolderIcon(folder.Path);
-                tile.Size = Items.Count > 0 ? Items[0].Size : 1.0;
-                Items.Add(tile);
-            }
         }
     }
 }

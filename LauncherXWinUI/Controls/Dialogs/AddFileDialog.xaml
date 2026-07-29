@@ -43,13 +43,6 @@
         </StackPanel>
 
         <TextBlock Text="Files selected will show up in the list below. You can reorder your files after adding them." TextWrapping="WrapWholeWords" />
-        <ToggleSwitch
-            x:Name="FormattingToggleSwitch"
-            Margin="0,5,0,0"
-            IsOn="True"
-            OffContent="Raw path (no icon)"
-            OnContent="Formatted link (with icon)" />
-
         <ListView
             x:Name="SelectedFilesListView"
             Height="200"

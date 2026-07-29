@@ -334,41 +334,5 @@ namespace LauncherXWinUI
 
             ExportProgressRing.IsActive = false;
         }
-
-        private async void RestoreBackupBtn_Click(object sender, RoutedEventArgs e)
-        {
-            var picker = new Windows.Storage.Pickers.FileOpenPicker();
-            IntPtr hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-            WinRT.Interop.InitializeWithWindow.Initialize(picker, hWnd);
-            picker.FileTypeFilter.Add(".zip");
-
-            var file = await picker.PickSingleFileAsync();
-            if (file != null)
-            {
-                try
-                {
-                    UserSettingsClass.RestoreFromBackup(file.Path);
-
-                    ContentDialog successDialog = new ContentDialog();
-                    successDialog.XamlRoot = Container.XamlRoot;
-                    successDialog.Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style;
-                    successDialog.Title = "Backup restored";
-                    successDialog.PrimaryButtonText = "OK";
-                    successDialog.DefaultButton = ContentDialogButton.Primary;
-                    successDialog.Content = "Items restored from backup. Close and re-open LauncherX to see the changes.";
-                    await successDialog.ShowAsync();
-                }
-                catch
-                {
-                    ContentDialog errorDialog = new ContentDialog();
-                    errorDialog.XamlRoot = Container.XamlRoot;
-                    errorDialog.Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style;
-                    errorDialog.Title = "Restore failed";
-                    errorDialog.PrimaryButtonText = "OK";
-                    errorDialog.Content = "Could not restore from the selected backup file.";
-                    await errorDialog.ShowAsync();
-                }
-            }
-        }
     }
 }
